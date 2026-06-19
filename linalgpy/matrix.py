@@ -1,15 +1,4 @@
-"""A Pythonic Matrix class wrapping the linalg C ``Mat *`` handle.
-
-This is the layer you implement. The C library does the math; this class makes
-it feel like Python: construction from lists/numpy, indexing, operators, and
-automatic cleanup.
-
-THE OWNERSHIP RULE (read this first):
-  Every C ``Mat *`` is owned by exactly ONE Matrix instance, which frees it in
-  __del__. C functions like mat_mul return a brand-new Mat* — wrap each one in
-  its own Matrix via Matrix._wrap so it gets freed exactly once. Never wrap the
-  same handle twice (double-free) and never use a Matrix after it's gone.
-"""
+"""A Pythonic Matrix class wrapping the linalg C ``Mat *`` handle."""
 from __future__ import annotations
 
 from ctypes import c_double, POINTER, cast
