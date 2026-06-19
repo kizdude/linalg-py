@@ -1,0 +1,21 @@
+# virtual environment
+.venv/
+
+# python caches
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# the compiled C library (built from the submodule on demand)
+*.dll
+*.so
+*.dylib
+
+# editor / OS
+.vscode/
+.idea/
+.DS_Store
