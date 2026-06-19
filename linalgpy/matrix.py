@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from ctypes import c_double, POINTER, cast
 
+import numpy as np
+
 from ._loader import lib
 from . import _cdefs  # noqa: F401  (ensures signatures are registered)
 
@@ -25,106 +27,101 @@ class LinalgError(Exception):
 class Matrix:
     # ------------------------------------------------------------------ construct
     def __init__(self, data):
-        """Build a Matrix from a 2D sequence (list of lists) or numpy array.
-
-        TODO:
-          - figure out rows/cols from `data`
-          - flatten the values row-major into a (c_double * (rows*cols)) array
-          - call lib.mat_from_array(rows, cols, arr); store the handle
-          - raise LinalgError if the C call returns NULL (falsy c_void_p)
-        """
-        raise NotImplementedError
+        """Build a Matrix from a 2D sequence (list of lists) or numpy array."""
+        a = np.asarray(data, dtype=float)
+        rows, cols = a.shape
+        flat = a.flatten().tolist()
+        arr = (c_double * (rows * cols))(*flat)
+        self._handle = lib.mat_from_array(rows, cols, arr)
+        if not self._handle:
+            raise LinalgError("Failed to create matrix")
 
     @classmethod
     def _wrap(cls, handle):
-        """Wrap an existing C Mat* handle (from a C call) in a Matrix.
-
-        TODO:
-          - if handle is NULL/falsy -> raise LinalgError
-          - create an instance WITHOUT calling __init__ (cls.__new__(cls)),
-            set its ._handle, and return it
-        This is how every operation result becomes a managed Matrix.
-        """
-        raise NotImplementedError
+        """Wrap an existing C Mat* handle (from a C call) in a Matrix."""
+        if not handle:
+            raise LinalgError("C function returned NULL")
+        obj = cls.__new__(cls)
+        obj._handle = handle
+        return obj
 
     def __del__(self):
-        # TODO: free the C matrix exactly once (guard: it may not exist if
-        # __init__ raised before assigning ._handle).
-        ...
+        if hasattr(self, "_handle") and self._handle:
+            lib.mat_free(self._handle)
 
     # ------------------------------------------------------------------ introspect
     @property
     def rows(self) -> int:
-        raise NotImplementedError
+        return lib.mat_rows(self._handle)
 
     @property
     def cols(self) -> int:
-        raise NotImplementedError
+        return lib.mat_cols(self._handle)
 
     @property
     def shape(self) -> tuple[int, int]:
-        raise NotImplementedError
+        return (self.rows, self.cols)
 
     def __getitem__(self, ij):
-        # ij is a tuple (i, j). TODO: return lib.mat_get(...)
-        raise NotImplementedError
+        i, j = ij
+        return lib.mat_get(self._handle, i, j)
 
     def __setitem__(self, ij, value):
-        # TODO: lib.mat_set(...)
-        raise NotImplementedError
+        i, j = ij
+        lib.mat_set(self._handle, i, j, value)
 
     # ------------------------------------------------------------------ operators
     def __add__(self, other):
-        raise NotImplementedError
+        return Matrix._wrap(lib.mat_add(self._handle, other._handle))
 
     def __sub__(self, other):
-        raise NotImplementedError
+        return Matrix._wrap(lib.mat_sub(self._handle, other._handle))
 
     def __matmul__(self, other):
-        # the @ operator -> mat_mul
-        raise NotImplementedError
+        return Matrix._wrap(lib.mat_mul(self._handle, other._handle))
 
     def __mul__(self, scalar):
-        # scalar multiply -> mat_scale
-        raise NotImplementedError
+        return Matrix._wrap(lib.mat_scale(self._handle, scalar))
 
     @property
     def T(self):
-        # transpose
-        raise NotImplementedError
+        return Matrix._wrap(lib.mat_transpose(self._handle))
 
     def __eq__(self, other):
-        # use mat_equal with a small tolerance
-        raise NotImplementedError
+       if not isinstance(other, Matrix):
+            return NotImplemented
+       return bool(lib.mat_equal(self._handle, other._handle, 1e-9))
 
     # ------------------------------------------------------------------ linear algebra
     def determinant(self) -> float:
-        raise NotImplementedError
+        return lib.mat_determinant(self._handle)
 
     def inverse(self) -> "Matrix":
-        raise NotImplementedError
+        return Matrix._wrap(lib.mat_inverse(self._handle))
 
     def solve(self, b: "Matrix") -> "Matrix":
-        raise NotImplementedError
+        return Matrix._wrap(lib.mat_solve(self._handle, b._handle))
 
     # ------------------------------------------------------------------ construct helpers
     @classmethod
     def zeros(cls, rows: int, cols: int) -> "Matrix":
-        raise NotImplementedError
+        return cls._wrap(lib.mat_zeros(rows, cols))
 
     @classmethod
     def identity(cls, n: int) -> "Matrix":
-        raise NotImplementedError
+        return cls._wrap(lib.mat_identity(n))
 
     # ------------------------------------------------------------------ numpy interop
     def to_numpy(self):
-        # TODO: read rows*cols doubles out with mat_to_array, reshape
-        raise NotImplementedError
+        r, c = self.rows, self.cols
+        buf = (c_double * (r * c))()
+        lib.mat_to_array(self._handle, buf)
+        return np.array(buf, dtype=float).reshape((r, c))
 
     @classmethod
     def from_numpy(cls, arr) -> "Matrix":
-        raise NotImplementedError
+        return cls(arr)
 
     # ------------------------------------------------------------------ display
     def __repr__(self) -> str:
-        raise NotImplementedError
+        return f"Matrix({self.to_numpy().tolist()})"
