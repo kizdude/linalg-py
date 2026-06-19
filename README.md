@@ -32,10 +32,17 @@ print(A.inverse().to_numpy())
 print((A @ A).determinant())
 ```
 
+For a fuller example — solving a system and visualizing a 2D transform — run the
+demo (needs the `demo` extra for matplotlib: `pip install -e ".[dev,demo]"`):
+
+```sh
+.venv/Scripts/python examples/demo.py
+```
+
 ## Test
 
 ```sh
-python -m pytest
+.venv/Scripts/python -m pytest
 ```
 
 Tests cross-check every operation against numpy.
@@ -48,5 +55,7 @@ linalgpy/
   _cdefs.py    ctypes argtype/restype declarations for the C API
   matrix.py    the Pythonic Matrix wrapper
 build_lib.py   compiles the submodule via CMake
+examples/      demo.py — numeric + transform-visualization demo
+tests/         pytest suite (cross-checked against numpy)
 external/linalg  the C library (git submodule)
 ```
