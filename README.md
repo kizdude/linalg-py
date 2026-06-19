@@ -1,4 +1,4 @@
-# linalgpy
+# linalg-py
 
 Python bindings for the [linalg](../linalg) C library, via **ctypes** FFI. The C
 library does the math; `linalgpy` wraps it in a Pythonic `Matrix` class with
